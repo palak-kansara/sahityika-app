@@ -1,0 +1,47 @@
+name: sahityika_app
+description: A new Flutter project.
+
+publish_to: 'none'
+
+environment:
+  sdk: ">=3.1.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  shared_preferences: ^2.2.2
+  mobile_scanner: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+  url_launcher: ^6.2.5
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.jpeg"
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon/
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Medium.ttf
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+
+    - family: NotoSerifGujarati
+      fonts:
+        - asset: assets/fonts/NotoSerifGujarati-Regular.ttf
+
+dev_dependencies:
+  flutter_native_splash: ^2.4.0
+
+flutter_native_splash:
+  color: "#FFFFFF"          # background color
+  branding: "assets/icon/splash.jpeg"
+
+  android_12:
+    image: "assets/icon/splash.jpeg"
+    color: "#FFFFFF"
