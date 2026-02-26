@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/book.dart';
 import '../services/book_list_service.dart';
+import '../services/reading_service.dart';
 
 class BookDetailScreen extends StatefulWidget {
   final int bookId;
@@ -20,11 +21,92 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     late Future<Book> _bookFuture;
     bool _isFav = false;
     bool _wishlistLoading = false;
+    bool _isRead = false;
+    bool _readingLoading = false;
+    bool _hasSyncedRead = false;
+    int? _readId;
 
   @override
   void initState() {
     super.initState();
-    _bookFuture = BookService.fetchBookDetail(widget.bookId);
+    _bookFuture = BookService.fetchBookDetail(widget.bookId).then((book) {
+    // _isFav = book.isFav;
+    _isRead = book.isRead;
+    _readId = book.readId;
+    return book;
+  });
+  }
+
+  Future<void> _handleReadingToggle(Book book) async {
+    if (_readingLoading) return;
+
+    // If already in reading list, confirm removal & progress reset
+    if (_isRead) {
+      final confirmed = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Remove from reading list?'),
+              content: const Text(
+                'All reading progress for this book will be deleted. '
+                'Do you want to continue?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Yes, remove'),
+                ),
+              ],
+            ),
+          ) ??
+          false;
+
+      if (!confirmed) return;
+    }
+
+    setState(() => _readingLoading = true);
+
+    try {
+      Map<String, dynamic> response;
+      if (_isRead) {
+        // DELETE: remove from reading list using read_id
+        if (_readId == null) {
+          throw Exception('Missing read_id for this book');
+        }
+        response = await ReadingService.removeFromReading(_readId!);
+        setState(() {
+          _readId = null;
+          _isRead = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Book removed from reading list")),
+        );
+      } else {
+        // POST: add to reading list using book id
+        response = await ReadingService.addToReading(book.id);
+        // Response example: {"id":15,"book":{...}}
+        final int? newReadId = (response['id'] as num?)?.toInt();
+        setState(() {
+          _readId = newReadId;
+          _isRead = newReadId != null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Book added to reading list")),
+        );
+      }
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reading list update failed')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _readingLoading = false);
+      }
+    }
   }
 
   void _openPreview(String previewLink) async {
@@ -97,6 +179,7 @@ Widget build(BuildContext context) {
           _isFav = book.isFav;
         }
 
+
         return _buildContent(context, book);
       },
     ),
@@ -114,11 +197,24 @@ Widget build(BuildContext context) {
           Center(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                book.thumbnail,
-                height: 220,
-                fit: BoxFit.cover,
-              ),
+              child: book.thumbnail.isNotEmpty
+                  ? Image.network(
+                      book.thumbnail,
+                      height: 220,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          'assets/icon/app_icon.jpeg',
+                          height: 220,
+                          fit: BoxFit.cover,
+                        );
+                      },
+                    )
+                  : Image.asset(
+                      'assets/icon/app_icon.jpeg',
+                      height: 220,
+                      fit: BoxFit.cover,
+                    ),
             ),
           ),
 
@@ -190,6 +286,23 @@ Widget build(BuildContext context) {
                     ),
                     tooltip: _isFav ? 'Remove from Wishlist' : 'Add to Wishlist',
 )
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: IconButton(
+                  onPressed: _readingLoading
+                      ? null
+                      : () => _handleReadingToggle(book),
+                  icon: Icon(
+                    _isRead ? Icons.menu_book : Icons.book_outlined,
+                    color: _isRead
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).iconTheme.color,
+                    size: 26,
+                  ),
+                  tooltip:
+                      _isRead ? 'Open (in reading list)' : 'Add to Reading List',
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(

@@ -71,7 +71,9 @@ class _HomeScreenState extends State<HomeScreen> {
 		setState(() => _loading = true);
 
 		try {
-			if (_mode == HomeMode.listing && _hasMoreList) {
+			if (_mode == HomeMode.listing) {
+			if (!_hasMoreList) return;
+
 			final response = await BookService.fetchBooks(_listPage);
 
 			setState(() {
@@ -79,9 +81,9 @@ class _HomeScreenState extends State<HomeScreen> {
 				_books.addAll(response.books);
 				_hasMoreList = response.hasNext;
 			});
-			}
+			} else {
+			if (!_hasMoreSearch) return;
 
-			if (_mode == HomeMode.searching && _hasMoreSearch) {
 			final response = await BookService.searchBooks(
 				query: _searchQuery,
 				page: _searchPage,
@@ -103,11 +105,12 @@ class _HomeScreenState extends State<HomeScreen> {
 	}
 
 	Future<void> _startSearch(String query) async {
-		if (query.isEmpty) return;
+		if (query.trim().isEmpty) return;
 
 		setState(() {
 			_mode = HomeMode.searching;
-			_searchQuery = query;
+			_searchQuery = query.trim();
+
 			_books.clear();
 			_searchPage = 1;
 			_hasMoreSearch = true;
@@ -115,14 +118,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
 		await _loadMore();
 	}
-
 	Future<void> _clearSearch() async {
 		setState(() {
 			_mode = HomeMode.listing;
+			_searchQuery = '';
+
 			_books.clear();
 			_listPage = 1;
 			_hasMoreList = true;
-			_searchQuery = '';
+
+			_searchController.clear();
 		});
 
 		await _loadMore();
@@ -171,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
 				// Search box
 				TextField(
 					controller: _searchController,
-					onSubmitted: _startSearch,
+					onChanged: _startSearch,
 					decoration: InputDecoration(
 						hintText: 'Search for a book',
 						prefixIcon: const Icon(Icons.search),
@@ -215,11 +220,24 @@ class _HomeScreenState extends State<HomeScreen> {
 								Expanded(
 									child: ClipRRect(
 									borderRadius: BorderRadius.circular(12),
-									child: Image.network(
-										book.thumbnail,
-										fit: BoxFit.cover,
-										width: double.infinity,
-									),
+									child: book.thumbnail.isNotEmpty
+										? Image.network(
+											book.thumbnail,
+											fit: BoxFit.cover,
+											width: double.infinity,
+											errorBuilder: (context, error, stackTrace) {
+												return Image.asset(
+												'assets/icon/app_icon.jpeg',
+												fit: BoxFit.cover,
+												width: double.infinity,
+												);
+											},
+											)
+										: Image.asset(
+											'assets/icon/app_icon.jpeg',
+											fit: BoxFit.cover,
+											width: double.infinity,
+											),
 									),
 								),
 								const SizedBox(height: 6),

@@ -160,11 +160,25 @@ class _FavouritesScreenState extends State<FavouritesScreen> {
                               Expanded(
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
-                                  child: Image.network(
-                                    book.thumbnail,
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                  ),
+                                  child: book.thumbnail.isNotEmpty
+                                      ? Image.network(
+                                          book.thumbnail,
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return Image.asset(
+                                              'assets/icon/app_icon.jpeg',
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                            );
+                                          },
+                                        )
+                                      : Image.asset(
+                                          'assets/icon/app_icon.jpeg',
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                        ),
                                 ),
                               ),
                               const SizedBox(height: 6),

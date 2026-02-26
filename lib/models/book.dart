@@ -23,6 +23,8 @@ class Book {
   final String previewLink;
   final List<Author> authors;
   final bool isFav;
+  final int? readId; // reading list entry id (null if not in list)
+  final bool isRead;
 
   Book({
     required this.id,
@@ -35,9 +37,15 @@ class Book {
     required this.previewLink,
     required this.authors,
     required this.isFav,
+    required this.readId,
+    required this.isRead,
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
+    final dynamic rawReadId = json['read_id'];
+    final int? readId =
+        rawReadId == null ? null : (rawReadId as num).toInt();
+
     return Book(
       id: json['id'],
       title: json['title'],
@@ -48,6 +56,9 @@ class Book {
       thumbnail: json['thumbnail'] ?? '',
       previewLink: json['preview_link'] ?? '',
       isFav: json['is_fav'] ?? false,
+      readId: readId,
+      // Backend: read_id has value if in list, None/absent if not
+      isRead: readId != null,
       authors: (json['authors'] as List)
           .map((e) => Author.fromJson(e))
           .toList(),
