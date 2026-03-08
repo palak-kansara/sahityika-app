@@ -19,6 +19,12 @@ class BookService {
   // static const String baseUrl = 'http://192.168.1.13:8000';
 
   	static Future<PaginatedBooks> fetchBooks(int page) async {
+
+		if (await StorageService.isTokenExpired()) {
+			await StorageService.clear();
+			throw Exception("SESSION_EXPIRED");
+		}
+
 		final token = await StorageService.getToken();
 
 		final response = await http.get(

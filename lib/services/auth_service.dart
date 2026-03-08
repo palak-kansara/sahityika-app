@@ -25,6 +25,7 @@ class AuthService {
         final data = jsonDecode(response.body);
         await StorageService.saveLoginData(
         	token: data['token'],
+          expiry: data['expiry'],
         	name: data['user']['first_name'],
 		);
         return true;

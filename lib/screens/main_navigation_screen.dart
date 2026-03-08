@@ -27,56 +27,80 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
+      resizeToAvoidBottomInset: false,
       body: _screens[_selectedIndex],// placeholder for now
 
       // Center + button (Add Book)
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => const ISBNScannerScreen(),
-            ),
-          );
-        },
-        elevation: 2,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        child: const Icon(Icons.add, size: 30),
-      ),
-      floatingActionButtonLocation:
-          FloatingActionButtonLocation.centerDocked,
+      // floatingActionButton: SafeArea(child: FloatingActionButton(
+      //   onPressed: () {
+      //     Navigator.of(context).push(
+      //       MaterialPageRoute(
+      //         builder: (context) => const ISBNScannerScreen(),
+      //       ),
+      //     );
+      //   },
+      //   elevation: 2,
+      //   backgroundColor: Theme.of(context).colorScheme.primary,
+      //   child: const Icon(Icons.add, size: 30),
+      // )),
+      // floatingActionButtonLocation:
+      //     FloatingActionButtonLocation.centerDocked,
 
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        height: 64,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
+      bottomNavigationBar: Stack(
+        alignment: Alignment.bottomCenter,
+        children: [
+
+          NavigationBar(
+            selectedIndex: _selectedIndex,
+            height: 64,
+            onDestinationSelected: (index) {
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home),
+                label: 'Home',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.star_border),
+                selectedIcon: Icon(Icons.star),
+                label: 'Favourites',
+              ),
+              NavigationDestination(
+                icon: SizedBox(width: 40),
+                label: '',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.menu_book_outlined),
+                selectedIcon: Icon(Icons.menu_book),
+                label: 'Reading',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person),
+                label: 'Profile',
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.star_border),
-            selectedIcon: Icon(Icons.star),
-            label: 'Favourites',
-          ),
-          NavigationDestination(
-            icon: SizedBox.shrink(), // placeholder for +
-            label: '',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book),
-            label: 'Reading',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
+
+          Positioned(
+            bottom: 20,
+            child: FloatingActionButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const ISBNScannerScreen(),
+                  ),
+                );
+              },
+              elevation: 2,
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              child: const Icon(Icons.add, size: 30),
+            ),
           ),
         ],
       ),

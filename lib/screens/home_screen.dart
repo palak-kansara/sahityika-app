@@ -97,6 +97,14 @@ class _HomeScreenState extends State<HomeScreen> {
 			}
 		} catch (e) {
 			print('LOAD ERROR: $e');
+			if (e.toString().contains("SESSION_EXPIRED")) {
+				Navigator.pushAndRemoveUntil(
+				context,
+				MaterialPageRoute(builder: (_) => const LoginLandingScreen()),
+				(route) => false,
+				);
+				return;
+			}
 		} finally {
 			if (mounted) {
 			setState(() => _loading = false);
