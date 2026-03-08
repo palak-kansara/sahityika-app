@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'favourites_screen.dart';
 import 'isbn_scanner_screen.dart';
+import 'reading_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -18,7 +19,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         const HomeScreen(),               // index 0 → Home
         const FavouritesScreen(),    // ⭐ Favourites
         const SizedBox.shrink(),           // index 2 (handled by + button)
-        const Center(child: Text('Reading Progress')), // index 3
+        const ReadingScreen(), // index 3
         const Center(child: Text('Profile')), // index 4
     ];
 

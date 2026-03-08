@@ -25,6 +25,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     bool _readingLoading = false;
     bool _hasSyncedRead = false;
     int? _readId;
+    bool _progressLoading = false;
+    int _pageRead = 0;
+    int? _totalPages;
+    double _progress = 0.0;
+    final TextEditingController _pageReadController = TextEditingController();
 
   @override
   void initState() {
@@ -33,8 +38,73 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     // _isFav = book.isFav;
     _isRead = book.isRead;
     _readId = book.readId;
+    if (_readId != null) {
+      _loadReadingProgress(_readId!);
+    }
     return book;
   });
+  }
+
+  @override
+  void dispose() {
+    _pageReadController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadReadingProgress(int readId) async {
+    if (_progressLoading) return;
+
+    setState(() => _progressLoading = true);
+    try {
+      final entry = await ReadingService.fetchReadingEntry(readId);
+      if (!mounted) return;
+      setState(() {
+        _pageRead = entry.pageRead;
+        _totalPages = entry.totalPages;
+        _progress = entry.progress;
+        _pageReadController.text = entry.pageRead.toString();
+      });
+    } catch (_) {
+      // keep UI usable even if progress fetch fails
+    } finally {
+      if (mounted) setState(() => _progressLoading = false);
+    }
+  }
+
+  Future<void> _savePageRead() async {
+    if (_readId == null) return;
+
+    final int? value = int.tryParse(_pageReadController.text.trim());
+    if (value == null || value < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid page number')),
+      );
+      return;
+    }
+
+    setState(() => _progressLoading = true);
+    try {
+      final entry = await ReadingService.updatePageRead(
+        readingId: _readId!,
+        pageRead: value,
+      );
+      if (!mounted) return;
+      setState(() {
+        _pageRead = entry.pageRead;
+        _totalPages = entry.totalPages;
+        _progress = entry.progress;
+        _pageReadController.text = entry.pageRead.toString();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Progress updated')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update progress')),
+      );
+    } finally {
+      if (mounted) setState(() => _progressLoading = false);
+    }
   }
 
   Future<void> _handleReadingToggle(Book book) async {
@@ -93,6 +163,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           _readId = newReadId;
           _isRead = newReadId != null;
         });
+        if (newReadId != null) {
+          await _loadReadingProgress(newReadId);
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Book added to reading list")),
         );
@@ -264,6 +337,81 @@ Widget build(BuildContext context) {
           ),
 
           const SizedBox(height: 24),
+
+          if (_isRead) ...[
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Reading progress',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${(_progress * 100).round()}%',
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: _progress,
+                      minHeight: 10,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    _totalPages != null && _totalPages! > 0
+                        ? 'Page $_pageRead of $_totalPages'
+                        : 'Page read: $_pageRead',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _pageReadController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Pages read',
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 110),
+                        child: ElevatedButton(
+                          onPressed: _progressLoading ? null : _savePageRead,
+                          child: _progressLoading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text('Save'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
 
           // Actions
           Row(
