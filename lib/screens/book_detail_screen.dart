@@ -35,7 +35,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   void initState() {
     super.initState();
     _bookFuture = BookService.fetchBookDetail(widget.bookId).then((book) {
-    // _isFav = book.isFav;
+    _isFav = book.isFav;
     _isRead = book.isRead;
     _readId = book.readId;
     if (_readId != null) {
@@ -182,17 +182,17 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     }
   }
 
-  void _openPreview(String previewLink) async {
-    if (previewLink.isEmpty) return;
+    void _openPreview(String previewLink) async {
+      if (previewLink.isEmpty) return;
 
-    final uri = Uri.parse(previewLink);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+      final uri = Uri.parse(previewLink);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+      }
     }
-  }
 
     Future<void> _toggleWishlist(int bookId) async {
         if (_wishlistLoading) return;
@@ -248,9 +248,9 @@ Widget build(BuildContext context) {
         final book = snapshot.data!;
 
         // ✅ SAFE PLACE FOR STATE SYNC
-        if (!_isFav) {
-          _isFav = book.isFav;
-        }
+        // if (!_isFav) {
+        //   _isFav = book.isFav;
+        // }
 
 
         return _buildContent(context, book);

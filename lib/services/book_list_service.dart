@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/book.dart';
 import 'storage_service.dart';
 import '../constants/api_constants.dart';
+import 'api_client.dart';
 
 class PaginatedBooks {
   final List<Book> books;
@@ -27,12 +28,7 @@ class BookService {
 
 		final token = await StorageService.getToken();
 
-		final response = await http.get(
-		Uri.parse('${ApiConstants.books}?page=$page'),
-		headers: {
-			'Authorization': 'Token $token',
-		},
-		);
+		final response = await ApiClient.get('${ApiConstants.books}?page=$page');
 
 		final decoded = jsonDecode(response.body);
 
@@ -52,12 +48,7 @@ class BookService {
 	static Future<PaginatedBooks> searchBooks({required String query, required int page,}) async {
     	final token = await StorageService.getToken();
 
-		final response = await http.get(
-			Uri.parse('${ApiConstants.books}?search=$query&page=$page'),
-			headers: {
-				'Authorization': 'Token $token',
-			},
-		);
+		final response = await ApiClient.get('${ApiConstants.books}?search=$query&page=$page');
 		final decoded = jsonDecode(response.body);
 
 		final List results = decoded['results'];
@@ -76,12 +67,7 @@ class BookService {
    	static Future<Book> fetchBookDetail(int id) async {
 		final token = await StorageService.getToken();
 
-		final response = await http.get(
-			Uri.parse('${ApiConstants.books}$id'),
-			headers: {
-			'Authorization': 'Token $token',
-			},
-		);
+		final response = await ApiClient.get('${ApiConstants.books}$id');
 
 		if (response.statusCode != 200) {
 			throw Exception('Failed to load book details');
@@ -94,12 +80,7 @@ class BookService {
 	static Future<Map<String, dynamic>> toggleWishlist(int bookId) async {
 		final token = await StorageService.getToken();
 
-		final response = await http.post(
-			Uri.parse('${ApiConstants.books}$bookId/favourite/'),
-			headers: {
-			'Authorization': 'Token $token',
-			},
-		);
+		final response = await ApiClient.post('${ApiConstants.books}$bookId/favourite/', {});
 
 		if (response.statusCode == 200) {
 			final data = jsonDecode(response.body);

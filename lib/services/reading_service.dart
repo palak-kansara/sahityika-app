@@ -4,6 +4,8 @@ import 'package:http/http.dart' as http;
 import '../constants/api_constants.dart';
 import 'storage_service.dart';
 import '../models/reading_entry.dart';
+import 'api_client.dart';
+
 
 class ReadingService {
   static Map<String, String> _authHeaders(String token) => <String, String>{
@@ -15,10 +17,7 @@ class ReadingService {
   static Future<List<ReadingEntry>> fetchReadingList({int page = 1}) async {
     final token = await StorageService.getToken();
 
-    final response = await http.get(
-      Uri.parse('${ApiConstants.reading}?page=$page'),
-      headers: _authHeaders(token ?? ''),
-    );
+    final response = await ApiClient.get('${ApiConstants.reading}?page=$page');
 
     if (response.statusCode != 200) {
       throw Exception('Failed to load reading list');
@@ -42,10 +41,7 @@ class ReadingService {
   static Future<ReadingEntry> fetchReadingEntry(int readingId) async {
     final token = await StorageService.getToken();
 
-    final response = await http.get(
-      Uri.parse('${ApiConstants.reading}$readingId/'),
-      headers: _authHeaders(token ?? ''),
-    );
+    final response = await ApiClient.get('${ApiConstants.reading}$readingId/');
 
     if (response.statusCode != 200) {
       throw Exception('Failed to load reading progress');
@@ -62,11 +58,9 @@ class ReadingService {
   }) async {
     final token = await StorageService.getToken();
 
-    final response = await http.patch(
-      Uri.parse('${ApiConstants.reading}$readingId/'),
-      headers: _authHeaders(token ?? ''),
-      body: jsonEncode(<String, dynamic>{'pages_read': pageRead}),
-    );
+    final response = await ApiClient.patch('${ApiConstants.reading}$readingId/', {
+        "pages_read": pageRead,
+      });
 
     if (response.statusCode != 200) {
       throw Exception('Failed to update reading progress');
@@ -80,14 +74,9 @@ class ReadingService {
   static Future<Map<String, dynamic>> addToReading(int bookId) async {
     final token = await StorageService.getToken();
 
-    final response = await http.post(
-      Uri.parse(ApiConstants.reading),
-      headers: {
-        'Authorization': 'Token $token',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({'book_id': bookId}),
-    );
+    final response = await ApiClient.post(ApiConstants.reading, {
+        "book_id": bookId,
+      });
 
     if (response.statusCode != 200 && response.statusCode != 201) {
       throw Exception('Failed to add to reading list');
@@ -102,13 +91,8 @@ class ReadingService {
   static Future<Map<String, dynamic>> removeFromReading(int readingId) async {
     final token = await StorageService.getToken();
 
-    final response = await http.delete(
-      Uri.parse('${ApiConstants.reading}$readingId/'),
-      headers: {
-        'Authorization': 'Token $token',
-        'Content-Type': 'application/json',
-      },
-    );
+    final response = await ApiClient.delete('${ApiConstants.reading}$readingId/');
+
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception('Failed to remove from reading list');
     }
