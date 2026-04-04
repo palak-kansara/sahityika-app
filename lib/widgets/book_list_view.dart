@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/book.dart';
+import '../models/book_filters.dart';
 import '../models/reading_entry.dart';
 
 import '../services/book_list_service.dart';
@@ -8,6 +9,7 @@ import '../services/reading_service.dart';
 
 import '../screens/book_detail_screen.dart';
 import '../enums/book_list_mode.dart';
+import 'book_filter_sheet.dart';
 
 class BookListView extends StatefulWidget {
   final BookListMode mode;
@@ -29,6 +31,7 @@ class _BookListViewState extends State<BookListView> {
 
   int _page = 1;
   String _query = '';
+  BookFilters _filters = const BookFilters();
 
   @override
   void initState() {
@@ -63,11 +66,12 @@ class _BookListViewState extends State<BookListView> {
         PaginatedBooks response;
 
         if (_query.isEmpty) {
-          response = await BookService.fetchBooks(_page);
+          response = await BookService.fetchBooks(_page, filters: _filters);
         } else {
           response = await BookService.searchBooks(
             query: _query,
             page: _page,
+            filters: _filters,
           );
         }
 
@@ -83,11 +87,12 @@ class _BookListViewState extends State<BookListView> {
         PaginatedBooks response;
 
         if (_query.isEmpty) {
-          response = await BookService.fetchWishlist(page: _page);
+          response = await BookService.fetchWishlist(page: _page, filters: _filters);
         } else {
           response = await BookService.fetchWishlist(
             page: _page,
             query: _query,
+            filters: _filters,
           );
         }
 
@@ -104,6 +109,7 @@ class _BookListViewState extends State<BookListView> {
             await ReadingService.fetchReadingList(
           page: _page,
           search: _query,
+          filters: _filters,
         );
 
         setState(() {
@@ -144,24 +150,56 @@ class _BookListViewState extends State<BookListView> {
     _loadMore();
   }
 
+  Future<void> _openFilters() async {
+    final result = await showModalBottomSheet<BookFilters>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => BookFilterSheet(current: _filters),
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _filters = result;
+      _books.clear();
+      _page = 1;
+      _hasMore = true;
+    });
+    await _loadMore();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        /// SEARCH FIELD
-        TextField(
-          controller: _searchController,
-          onChanged: _startSearch,
-          decoration: InputDecoration(
-            hintText: 'Search books',
-            prefixIcon: const Icon(Icons.search),
-            suffixIcon: _query.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: _clearSearch,
-                  )
-                : null,
-          ),
+        /// SEARCH + FILTER ROW
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                onChanged: _startSearch,
+                decoration: InputDecoration(
+                  hintText: 'Search books',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _query.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: _clearSearch,
+                        )
+                      : null,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Badge(
+              isLabelVisible: _filters.activeCount > 0,
+              label: Text('${_filters.activeCount}'),
+              child: IconButton.outlined(
+                icon: const Icon(Icons.tune),
+                tooltip: 'Filters',
+                onPressed: _openFilters,
+              ),
+            ),
+          ],
         ),
 
         const SizedBox(height: 20),

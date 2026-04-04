@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../constants/api_constants.dart';
+import '../models/book_filters.dart';
 import 'storage_service.dart';
 import '../models/reading_entry.dart';
 import 'api_client.dart';
@@ -14,12 +15,13 @@ class ReadingService {
       };
 
   /// Get reading list
-  static Future<List<ReadingEntry>> fetchReadingList({int page = 1, String search = '',}) async {
+  static Future<List<ReadingEntry>> fetchReadingList({int page = 1, String search = '', BookFilters? filters}) async {
     final token = await StorageService.getToken();
+    final filterQuery = filters?.toQueryString() ?? '';
 
     final url = search.isEmpty
-    ? '${ApiConstants.reading}?page=$page'
-    : '${ApiConstants.reading}?search=$search&page=$page';
+    ? '${ApiConstants.reading}?page=$page$filterQuery'
+    : '${ApiConstants.reading}?search=$search&page=$page$filterQuery';
 
     final response = await ApiClient.get(url);
 

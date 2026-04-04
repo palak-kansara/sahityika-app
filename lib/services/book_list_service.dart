@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/book.dart';
+import '../models/book_filters.dart';
 import 'storage_service.dart';
 import '../constants/api_constants.dart';
 import 'api_client.dart';
@@ -19,7 +20,7 @@ class PaginatedBooks {
 class BookService {
   // static const String baseUrl = 'http://192.168.1.13:8000';
 
-  	static Future<PaginatedBooks> fetchBooks(int page) async {
+  	static Future<PaginatedBooks> fetchBooks(int page, {BookFilters? filters}) async {
 
 		if (await StorageService.isTokenExpired()) {
 			await StorageService.clear();
@@ -27,8 +28,9 @@ class BookService {
 		}
 
 		final token = await StorageService.getToken();
+		final filterQuery = filters?.toQueryString() ?? '';
 
-		final response = await ApiClient.get('${ApiConstants.books}?page=$page');
+		final response = await ApiClient.get('${ApiConstants.books}?page=$page$filterQuery');
 
 		final decoded = jsonDecode(response.body);
 
@@ -45,10 +47,11 @@ class BookService {
 		);
     }
 
-	static Future<PaginatedBooks> searchBooks({required String query, required int page,}) async {
+	static Future<PaginatedBooks> searchBooks({required String query, required int page, BookFilters? filters}) async {
     	final token = await StorageService.getToken();
+		final filterQuery = filters?.toQueryString() ?? '';
 
-		final response = await ApiClient.get('${ApiConstants.books}?search=$query&page=$page');
+		final response = await ApiClient.get('${ApiConstants.books}?search=$query&page=$page$filterQuery');
 		final decoded = jsonDecode(response.body);
 
 		final List results = decoded['results'];
@@ -90,11 +93,12 @@ class BookService {
 		throw Exception('Failed to toggle wishlist');
 	}
 
-	static Future<PaginatedBooks> fetchWishlist({int page=1, String query = ''}) async {
+	static Future<PaginatedBooks> fetchWishlist({int page=1, String query = '', BookFilters? filters}) async {
 		final token = await StorageService.getToken();
+		final filterQuery = filters?.toQueryString() ?? '';
 		final url = query.isEmpty
-			? '${ApiConstants.books}favourite?page=$page'
-			: '${ApiConstants.books}favourite?search=$query&page=$page';
+			? '${ApiConstants.books}favourite?page=$page$filterQuery'
+			: '${ApiConstants.books}favourite?search=$query&page=$page$filterQuery';
 
 		final response = await ApiClient.get(url);
 

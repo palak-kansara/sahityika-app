@@ -109,7 +109,14 @@ class ManualBookPayload {
 class BookAddService {
   static Future<http.Response> addManualBook(ManualBookPayload payload) {
     return ApiClient.post(
-      ApiConstants.books_add,
+      ApiConstants.books,
+      payload.toJson(),
+    );
+  }
+
+  static Future<http.Response> editBook(int bookId, ManualBookPayload payload) {
+    return ApiClient.patch(
+      '${ApiConstants.books}$bookId/',
       payload.toJson(),
     );
   }

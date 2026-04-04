@@ -1,26 +1,18 @@
+import '../config/environment.dart';
+
 class ApiConstants {
-  // For Android Emulator use 10.0.2.2
-  // For Web use localhost
-  // For real device use your machine IP
+  static String get baseUrl => Environment.baseUrl;
 
-  // static const String baseUrl = 'http://192.168.1.11:8000/api';
-  static const String baseUrl = 'https://unmirthful-alla-lyrate.ngrok-free.dev/api';
+  static String get login => '$baseUrl/login/';
 
-  // Auth
-  static const String login = '$baseUrl/login/';
+  static String get books => '$baseUrl/books/';
+  static String get books_categories => '$baseUrl/books/categories/';
+  static String get books_publishers => '$baseUrl/books/publishers/';
 
-  // Books
-  static const String books = '$baseUrl/books/';
-  static const String books_add = '$baseUrl/books/add/';
-  static const String books_categories = '$baseUrl/books/categories/';
-  static const String books_publishers = '$baseUrl/books/publishers/';
+  static String get author => '$baseUrl/author/';
 
-  static const String author = '$baseUrl/author/';
+  static String get add_book => '$baseUrl/isbn/';
 
-  // Reading progress (ISBN add)
-  static const String add_book = '$baseUrl/isbn/';
-
-  // Reading list (POST to add, DELETE to remove)
-  static const String reading = '$baseUrl/reading/';
-  static const profile = "$baseUrl/profile/";
+  static String get reading => '$baseUrl/reading/';
+  static String get profile => '$baseUrl/profile/';
 }
