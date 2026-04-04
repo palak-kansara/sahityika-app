@@ -1,6 +1,4 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../config.dart';
+import '../constants/api_constants.dart';
 import 'api_client.dart';
 
 class ProgressService {

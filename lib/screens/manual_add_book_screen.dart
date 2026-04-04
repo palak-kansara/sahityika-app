@@ -2,16 +2,21 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../models/book.dart';
 import '../services/book_add_service.dart';
 import '../services/book_option_lists_service.dart';
 import '../widgets/author_picker_sheet.dart';
 import '../widgets/string_list_picker_sheet.dart';
 
 class ManualAddBookScreen extends StatefulWidget {
-  const ManualAddBookScreen({super.key, this.prefilledIsbn});
+  const ManualAddBookScreen({super.key, this.prefilledIsbn, this.initialBook});
 
   /// ISBN from scanner when the backend did not return a book.
   final String? prefilledIsbn;
+
+  /// When provided, the screen is in edit mode — fields are pre-filled and
+  /// the form submits via PATCH instead of POST.
+  final Book? initialBook;
 
   @override
   State<ManualAddBookScreen> createState() => _ManualAddBookScreenState();
@@ -44,13 +49,37 @@ class _ManualAddBookScreenState extends State<ManualAddBookScreen> {
   String _languageCode = 'en';
   bool _submitting = false;
 
+  bool get _isEditMode => widget.initialBook != null;
+
   @override
   void initState() {
     super.initState();
     if (widget.prefilledIsbn != null && widget.prefilledIsbn!.isNotEmpty) {
       _applyPrefilledIsbn(widget.prefilledIsbn!);
     }
+    if (widget.initialBook != null) {
+      _prefillFromBook(widget.initialBook!);
+    }
     _publishedDate.addListener(_onPublishedDateChanged);
+  }
+
+  void _prefillFromBook(Book book) {
+    _title.text = book.title;
+    _isbn10.text = book.isbn10;
+    _isbn13.text = book.isbn13;
+    _subtitle.text = book.subtitle ?? '';
+    _categories.text = book.categories ?? '';
+    _description.text = book.description;
+    _pageCount.text = book.pageCount ?? '';
+    _publisher.text = book.publisher ?? '';
+    _publishedDate.text = book.publishedDate ?? '';
+    _thumbnail.text = book.thumbnail;
+    _previewLink.text = book.previewLink;
+    _infoLink.text = book.infoLink ?? '';
+    _languageCode = (book.language != null && book.language!.isNotEmpty)
+        ? book.language!
+        : 'en';
+    _selectedAuthors.addAll(book.authors.map((a) => a.name));
   }
 
   void _onPublishedDateChanged() => setState(() {});
@@ -208,12 +237,17 @@ class _ManualAddBookScreenState extends State<ManualAddBookScreen> {
 
     setState(() => _submitting = true);
     try {
-      final response = await BookAddService.addManualBook(payload);
+      final response = _isEditMode
+          ? await BookAddService.editBook(widget.initialBook!.id, payload)
+          : await BookAddService.addManualBook(payload);
       if (!mounted) return;
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Book added successfully')),
+          SnackBar(
+            content: Text(
+                _isEditMode ? 'Book updated successfully' : 'Book added successfully'),
+          ),
         );
         Navigator.of(context).pop(true);
         return;
@@ -293,7 +327,7 @@ class _ManualAddBookScreenState extends State<ManualAddBookScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add book manually'),
+        title: Text(_isEditMode ? 'Edit book' : 'Add book manually'),
       ),
       body: Form(
         key: _formKey,
@@ -466,7 +500,7 @@ class _ManualAddBookScreenState extends State<ManualAddBookScreen> {
                       width: 22,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Submit book'),
+                  : Text(_isEditMode ? 'Save changes' : 'Submit book'),
             ),
           ],
         ),

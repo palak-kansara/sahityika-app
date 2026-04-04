@@ -26,6 +26,14 @@ class Book {
   final int? readId; // reading list entry id (null if not in list)
   final bool isRead;
 
+  // Extra fields returned by detail endpoint — null when from list endpoint
+  final String? categories;
+  final String? publisher;
+  final String? language;
+  final String? pageCount;
+  final String? publishedDate;
+  final String? infoLink;
+
   Book({
     required this.id,
     required this.title,
@@ -39,6 +47,12 @@ class Book {
     required this.isFav,
     required this.readId,
     required this.isRead,
+    this.categories,
+    this.publisher,
+    this.language,
+    this.pageCount,
+    this.publishedDate,
+    this.infoLink,
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
@@ -46,22 +60,31 @@ class Book {
     final int? readId =
         rawReadId == null ? null : (rawReadId as num).toInt();
 
+    final dynamic rawPageCount = json['page_count'];
+    final String? pageCount =
+        rawPageCount == null ? null : rawPageCount.toString();
+
     return Book(
       id: json['id'],
       title: json['title'],
       subtitle: json['subtitle'],
-      isbn10: json['isbn_10'],
-      isbn13: json['isbn_13'],
+      isbn10: json['isbn_10'] ?? '',
+      isbn13: json['isbn_13'] ?? '',
       description: json['description'] ?? '',
       thumbnail: json['thumbnail'] ?? '',
       previewLink: json['preview_link'] ?? '',
       isFav: json['is_fav'] ?? false,
       readId: readId,
-      // Backend: read_id has value if in list, None/absent if not
       isRead: readId != null,
-      authors: (json['authors'] as List)
+      authors: (json['authors'] as List? ?? [])
           .map((e) => Author.fromJson(e))
           .toList(),
+      categories: json['categories'] as String?,
+      publisher: json['publisher'] as String?,
+      language: json['language'] as String?,
+      pageCount: pageCount,
+      publishedDate: json['published_date'] as String?,
+      infoLink: json['info_link'] as String?,
     );
   }
 }

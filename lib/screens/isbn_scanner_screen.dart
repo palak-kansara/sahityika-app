@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/isbn_service.dart';
+import 'book_detail_screen.dart';
 import 'manual_add_book_screen.dart';
 
 class ISBNScannerScreen extends StatefulWidget {
@@ -160,6 +161,7 @@ class _ISBNScannerScreenState extends State<ISBNScannerScreen> {
   }
 
   Widget _buildBookInfo() {
+    final int? bookId = (book!["id"] as num?)?.toInt();
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -175,6 +177,19 @@ class _ISBNScannerScreenState extends State<ISBNScannerScreen> {
         Text("ISBN-13: ${book!["isbn_13"]}"),
         const SizedBox(height: 8),
         Text("Publisher: ${book!["publisher"] ?? "N/A"}"),
+        const SizedBox(height: 16),
+        if (bookId != null)
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => BookDetailScreen(bookId: bookId),
+                ),
+              );
+            },
+            icon: const Icon(Icons.edit_outlined),
+            label: const Text('View & Edit Details'),
+          ),
       ],
     );
   }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../models/book_filters.dart';
 import '../models/reading_entry.dart';
 import '../services/reading_service.dart';
+import '../widgets/book_filter_sheet.dart';
 import 'book_detail_screen.dart';
 
 class ReadingScreen extends StatefulWidget {
@@ -16,6 +18,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
 
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+  BookFilters _filters = const BookFilters();
 
   @override
   void initState() {
@@ -25,7 +28,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
 
   Future<void> _refresh() async {
     setState(() {
-      _future = ReadingService.fetchReadingList(search: _query);
+      _future = ReadingService.fetchReadingList(search: _query, filters: _filters);
     });
     await _future;
   }
@@ -34,7 +37,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
     _query = value.trim();
 
     setState(() {
-      _future = ReadingService.fetchReadingList(search: _query);
+      _future = ReadingService.fetchReadingList(search: _query, filters: _filters);
     });
   }
 
@@ -43,7 +46,20 @@ class _ReadingScreenState extends State<ReadingScreen> {
     _query = '';
 
     setState(() {
-      _future = ReadingService.fetchReadingList();
+      _future = ReadingService.fetchReadingList(filters: _filters);
+    });
+  }
+
+  Future<void> _openFilters() async {
+    final result = await showModalBottomSheet<BookFilters>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => BookFilterSheet(current: _filters),
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      _filters = result;
+      _future = ReadingService.fetchReadingList(search: _query, filters: _filters);
     });
   }
 
@@ -70,20 +86,36 @@ class _ReadingScreenState extends State<ReadingScreen> {
 
             const SizedBox(height: 20),
 
-            /// SEARCH BOX
-            TextField(
-              controller: _searchController,
-              onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'Search in reading list',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _query.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: _clearSearch,
-                      )
-                    : null,
-              ),
+            /// SEARCH + FILTER ROW
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _onSearchChanged,
+                    decoration: InputDecoration(
+                      hintText: 'Search in reading list',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _query.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: _clearSearch,
+                            )
+                          : null,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Badge(
+                  isLabelVisible: _filters.activeCount > 0,
+                  label: Text('${_filters.activeCount}'),
+                  child: IconButton.outlined(
+                    icon: const Icon(Icons.tune),
+                    tooltip: 'Filters',
+                    onPressed: _openFilters,
+                  ),
+                ),
+              ],
             ),
 
             const SizedBox(height: 20),

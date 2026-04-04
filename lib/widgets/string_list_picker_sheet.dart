@@ -10,6 +10,7 @@ class StringListPickerSheet extends StatefulWidget {
     this.customEntryLabel = 'Not listed? Enter custom',
     this.searchHint = 'Search',
     this.customDialogTitle = 'Enter name',
+    this.showCustomEntry = true,
   });
 
   final String title;
@@ -17,6 +18,7 @@ class StringListPickerSheet extends StatefulWidget {
   final String customEntryLabel;
   final String searchHint;
   final String customDialogTitle;
+  final bool showCustomEntry;
 
   @override
   State<StringListPickerSheet> createState() => _StringListPickerSheetState();
@@ -180,12 +182,14 @@ class _StringListPickerSheetState extends State<StringListPickerSheet> {
               ),
               onChanged: (_) => setState(() {}),
             ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: _showCustomDialog,
-              icon: const Icon(Icons.edit_outlined),
-              label: Text(widget.customEntryLabel),
-            ),
+            if (widget.showCustomEntry) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _showCustomDialog,
+                icon: const Icon(Icons.edit_outlined),
+                label: Text(widget.customEntryLabel),
+              ),
+            ],
             const SizedBox(height: 12),
           ],
         ),

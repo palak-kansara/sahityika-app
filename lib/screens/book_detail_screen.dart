@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/book.dart';
+import '../screens/manual_add_book_screen.dart';
 import '../services/book_list_service.dart';
 import '../services/reading_service.dart';
 
@@ -182,6 +183,25 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     }
   }
 
+  Future<void> _openEditScreen(Book book) async {
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ManualAddBookScreen(initialBook: book),
+      ),
+    );
+    if (updated == true && mounted) {
+      setState(() {
+        _bookFuture = BookService.fetchBookDetail(widget.bookId).then((b) {
+          _isFav = b.isFav;
+          _isRead = b.isRead;
+          _readId = b.readId;
+          if (_readId != null) _loadReadingProgress(_readId!);
+          return b;
+        });
+      });
+    }
+  }
+
     void _openPreview(String previewLink) async {
       if (previewLink.isEmpty) return;
 
@@ -227,33 +247,30 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
  @override
 Widget build(BuildContext context) {
   return Scaffold(
-    appBar: AppBar(
-      title: const Text('Book Details'),
-    ),
     body: FutureBuilder<Book>(
       future: _bookFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return const Center(child: Text('Failed to load book details'));
-        }
-
-        if (!snapshot.hasData) {
-          return const Center(child: Text('Book not found'));
-        }
-
-        final book = snapshot.data!;
-
-        // ✅ SAFE PLACE FOR STATE SYNC
-        // if (!_isFav) {
-        //   _isFav = book.isFav;
-        // }
-
-
-        return _buildContent(context, book);
+        final book = snapshot.data;
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Book Details'),
+            actions: [
+              if (book != null)
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Edit book',
+                  onPressed: () => _openEditScreen(book),
+                ),
+            ],
+          ),
+          body: snapshot.connectionState == ConnectionState.waiting
+              ? const Center(child: CircularProgressIndicator())
+              : snapshot.hasError
+                  ? const Center(child: Text('Failed to load book details'))
+                  : book == null
+                      ? const Center(child: Text('Book not found'))
+                      : _buildContent(context, book),
+        );
       },
     ),
   );
