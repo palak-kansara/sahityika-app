@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/isbn_service.dart';
+import 'manual_add_book_screen.dart';
 
 class ISBNScannerScreen extends StatefulWidget {
   const ISBNScannerScreen({super.key});
@@ -15,6 +16,7 @@ class _ISBNScannerScreenState extends State<ISBNScannerScreen> {
   bool isLoading = false;
   String? message;
   Map<String, dynamic>? book;
+  bool _bookNotFound = false;
 
   bool _isValidISBN(String value) {
     return value.length == 10 || value.length == 13;
@@ -25,6 +27,7 @@ class _ISBNScannerScreenState extends State<ISBNScannerScreen> {
       isLoading = true;
       message = null;
       book = null;
+      _bookNotFound = false;
     });
 
     final response = await IsbnService.checkIsbn(isbn);
@@ -38,6 +41,7 @@ class _ISBNScannerScreenState extends State<ISBNScannerScreen> {
       } else if (response["found"] == false) {
         // Case 3: Book not found
         message = response["message"];
+        _bookNotFound = true;
       } else if (response["found"] == true) {
         // Case 2: Book found
         book = response["book"];
@@ -45,10 +49,34 @@ class _ISBNScannerScreenState extends State<ISBNScannerScreen> {
     });
   }
 
+  Future<void> _openManualAdd({String? isbn}) async {
+    final added = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => ManualAddBookScreen(prefilledIsbn: isbn),
+      ),
+    );
+    if (!mounted || added != true) return;
+    setState(() {
+      scannedISBN = null;
+      isScanning = true;
+      message = null;
+      book = null;
+      _bookNotFound = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Scan ISBN")),
+      appBar: AppBar(
+        title: const Text("Scan ISBN"),
+        actions: [
+          TextButton(
+            onPressed: () => _openManualAdd(),
+            child: const Text('Manual entry'),
+          ),
+        ],
+      ),
       body: Column(
         children: [
           // CAMERA
@@ -85,10 +113,26 @@ class _ISBNScannerScreenState extends State<ISBNScannerScreen> {
                     ? const CircularProgressIndicator()
                     : book != null
                         ? _buildBookInfo()
-                        : Text(
-                            message ?? "Point camera at book barcode",
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 16),
+                        : SingleChildScrollView(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  message ?? "Point camera at book barcode",
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                                if (_bookNotFound && scannedISBN != null) ...[
+                                  const SizedBox(height: 16),
+                                  OutlinedButton.icon(
+                                    onPressed: () =>
+                                        _openManualAdd(isbn: scannedISBN),
+                                    icon: const Icon(Icons.edit_note),
+                                    label: const Text('Enter book details manually'),
+                                  ),
+                                ],
+                              ],
+                            ),
                           ),
               ),
             ),
@@ -104,6 +148,7 @@ class _ISBNScannerScreenState extends State<ISBNScannerScreen> {
                   isScanning = true;
                   message = null;
                   book = null;
+                  _bookNotFound = false;
                 });
               },
               child: const Text("Scan Another Book"),

@@ -35,13 +35,13 @@ flutter:
       fonts:
         - asset: assets/fonts/NotoSerifGujarati-Regular.ttf
 
-dev_dependencies:
-  flutter_native_splash: ^2.4.0
+# dev_dependencies:
+#   flutter_native_splash: ^2.4.0
 
-flutter_native_splash:
-  color: "#FFFFFF"          # background color
-  branding: "assets/icon/splash.jpeg"
+# flutter_native_splash:
+#   color: "#FFFFFF"
+#   image: assets/icon/splash.jpg
 
-  android_12:
-    image: "assets/icon/splash.jpeg"
-    color: "#FFFFFF"
+#   android_12:
+#     image: assets/icon/splash.jpg
+#     color: "#FFFFFF"

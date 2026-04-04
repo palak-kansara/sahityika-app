@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/book.dart';
 import 'storage_service.dart';
 import '../constants/api_constants.dart';
+import 'api_client.dart';
 
 class PaginatedBooks {
   final List<Book> books;
@@ -19,14 +20,15 @@ class BookService {
   // static const String baseUrl = 'http://192.168.1.13:8000';
 
   	static Future<PaginatedBooks> fetchBooks(int page) async {
+
+		if (await StorageService.isTokenExpired()) {
+			await StorageService.clear();
+			throw Exception("SESSION_EXPIRED");
+		}
+
 		final token = await StorageService.getToken();
 
-		final response = await http.get(
-		Uri.parse('${ApiConstants.books}?page=$page'),
-		headers: {
-			'Authorization': 'Token $token',
-		},
-		);
+		final response = await ApiClient.get('${ApiConstants.books}?page=$page');
 
 		final decoded = jsonDecode(response.body);
 
@@ -46,12 +48,7 @@ class BookService {
 	static Future<PaginatedBooks> searchBooks({required String query, required int page,}) async {
     	final token = await StorageService.getToken();
 
-		final response = await http.get(
-			Uri.parse('${ApiConstants.books}?search=$query&page=$page'),
-			headers: {
-				'Authorization': 'Token $token',
-			},
-		);
+		final response = await ApiClient.get('${ApiConstants.books}?search=$query&page=$page');
 		final decoded = jsonDecode(response.body);
 
 		final List results = decoded['results'];
@@ -70,12 +67,7 @@ class BookService {
    	static Future<Book> fetchBookDetail(int id) async {
 		final token = await StorageService.getToken();
 
-		final response = await http.get(
-			Uri.parse('${ApiConstants.books}$id'),
-			headers: {
-			'Authorization': 'Token $token',
-			},
-		);
+		final response = await ApiClient.get('${ApiConstants.books}$id');
 
 		if (response.statusCode != 200) {
 			throw Exception('Failed to load book details');
@@ -88,12 +80,7 @@ class BookService {
 	static Future<Map<String, dynamic>> toggleWishlist(int bookId) async {
 		final token = await StorageService.getToken();
 
-		final response = await http.post(
-			Uri.parse('${ApiConstants.books}$bookId/favourite/'),
-			headers: {
-			'Authorization': 'Token $token',
-			},
-		);
+		final response = await ApiClient.post('${ApiConstants.books}$bookId/favourite/', {});
 
 		if (response.statusCode == 200) {
 			final data = jsonDecode(response.body);
@@ -103,15 +90,13 @@ class BookService {
 		throw Exception('Failed to toggle wishlist');
 	}
 
-	static Future<PaginatedBooks> fetchWishlist(int page) async {
+	static Future<PaginatedBooks> fetchWishlist({int page=1, String query = ''}) async {
 		final token = await StorageService.getToken();
+		final url = query.isEmpty
+			? '${ApiConstants.books}favourite?page=$page'
+			: '${ApiConstants.books}favourite?search=$query&page=$page';
 
-		final response = await http.get(
-			Uri.parse('${ApiConstants.books}favourite/?page=$page'),
-			headers: {
-			'Authorization': 'Token $token',
-			},
-		);
+		final response = await ApiClient.get(url);
 
 		if (response.statusCode != 200) {
 			throw Exception('Failed to load wishlist');
