@@ -11,6 +11,11 @@ class ApiConstants {
 
   // Books
   static const String books = '$baseUrl/books/';
+  static const String books_add = '$baseUrl/books/add/';
+  static const String books_categories = '$baseUrl/books/categories/';
+  static const String books_publishers = '$baseUrl/books/publishers/';
+
+  static const String author = '$baseUrl/author/';
 
   // Reading progress (ISBN add)
   static const String add_book = '$baseUrl/isbn/';
