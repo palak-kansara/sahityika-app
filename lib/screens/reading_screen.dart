@@ -14,6 +14,9 @@ class ReadingScreen extends StatefulWidget {
 class _ReadingScreenState extends State<ReadingScreen> {
   late Future<List<ReadingEntry>> _future;
 
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
+
   @override
   void initState() {
     super.initState();
@@ -22,9 +25,32 @@ class _ReadingScreenState extends State<ReadingScreen> {
 
   Future<void> _refresh() async {
     setState(() {
-      _future = ReadingService.fetchReadingList();
+      _future = ReadingService.fetchReadingList(search: _query);
     });
     await _future;
+  }
+
+  void _onSearchChanged(String value) {
+    _query = value.trim();
+
+    setState(() {
+      _future = ReadingService.fetchReadingList(search: _query);
+    });
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    _query = '';
+
+    setState(() {
+      _future = ReadingService.fetchReadingList();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -35,18 +61,42 @@ class _ReadingScreenState extends State<ReadingScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+
+            /// TITLE
             Text(
               'Reading',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
+
             const SizedBox(height: 20),
+
+            /// SEARCH BOX
+            TextField(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'Search in reading list',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _query.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: _clearSearch,
+                      )
+                    : null,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
             Expanded(
               child: FutureBuilder<List<ReadingEntry>>(
                 future: _future,
                 builder: (context, snapshot) {
+
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
+
                   if (snapshot.hasError) {
                     return Center(
                       child: Column(
@@ -64,6 +114,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
                   }
 
                   final items = snapshot.data ?? <ReadingEntry>[];
+
                   if (items.isEmpty) {
                     return RefreshIndicator(
                       onRefresh: _refresh,
@@ -138,6 +189,7 @@ class _ReadingScreenState extends State<ReadingScreen> {
                                         ),
                                 ),
                                 const SizedBox(width: 12),
+
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
@@ -151,7 +203,9 @@ class _ReadingScreenState extends State<ReadingScreen> {
                                             .textTheme
                                             .titleMedium,
                                       ),
+
                                       const SizedBox(height: 8),
+
                                       Row(
                                         children: [
                                           Text(
@@ -160,7 +214,9 @@ class _ReadingScreenState extends State<ReadingScreen> {
                                                 .textTheme
                                                 .titleSmall,
                                           ),
+
                                           const SizedBox(width: 10),
+
                                           Expanded(
                                             child: ClipRRect(
                                               borderRadius:
@@ -173,7 +229,9 @@ class _ReadingScreenState extends State<ReadingScreen> {
                                           ),
                                         ],
                                       ),
+
                                       const SizedBox(height: 6),
+
                                       Text(
                                         entry.totalPages != null &&
                                                 entry.totalPages! > 0
@@ -202,4 +260,3 @@ class _ReadingScreenState extends State<ReadingScreen> {
     );
   }
 }
-

@@ -17,4 +17,5 @@ class ApiConstants {
 
   // Reading list (POST to add, DELETE to remove)
   static const String reading = '$baseUrl/reading/';
+  static const profile = "$baseUrl/profile/";
 }

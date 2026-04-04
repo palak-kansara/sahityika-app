@@ -47,8 +47,7 @@
 import 'package:flutter/material.dart';
 import 'screens/auth_check.dart';
 import 'theme/app_theme.dart';
-import 'screens/main_navigation_screen.dart';
-
+import 'screens/splash_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() {
@@ -65,7 +64,7 @@ class SahityikaApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       navigatorKey: navigatorKey,
       // home: const AuthCheck(),
-      home: const MainNavigationScreen(),
+      home: const SplashScreen(),
     );
   }
 }

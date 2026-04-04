@@ -90,15 +90,13 @@ class BookService {
 		throw Exception('Failed to toggle wishlist');
 	}
 
-	static Future<PaginatedBooks> fetchWishlist(int page) async {
+	static Future<PaginatedBooks> fetchWishlist({int page=1, String query = ''}) async {
 		final token = await StorageService.getToken();
+		final url = query.isEmpty
+			? '${ApiConstants.books}favourite?page=$page'
+			: '${ApiConstants.books}favourite?search=$query&page=$page';
 
-		final response = await http.get(
-			Uri.parse('${ApiConstants.books}favourite/?page=$page'),
-			headers: {
-			'Authorization': 'Token $token',
-			},
-		);
+		final response = await ApiClient.get(url);
 
 		if (response.statusCode != 200) {
 			throw Exception('Failed to load wishlist');

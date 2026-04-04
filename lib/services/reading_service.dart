@@ -14,10 +14,14 @@ class ReadingService {
       };
 
   /// Get reading list
-  static Future<List<ReadingEntry>> fetchReadingList({int page = 1}) async {
+  static Future<List<ReadingEntry>> fetchReadingList({int page = 1, String search = '',}) async {
     final token = await StorageService.getToken();
 
-    final response = await ApiClient.get('${ApiConstants.reading}?page=$page');
+    final url = search.isEmpty
+    ? '${ApiConstants.reading}?page=$page'
+    : '${ApiConstants.reading}?search=$search&page=$page';
+
+    final response = await ApiClient.get(url);
 
     if (response.statusCode != 200) {
       throw Exception('Failed to load reading list');
@@ -55,19 +59,19 @@ class ReadingService {
   static Future<ReadingEntry> updatePageRead({
     required int readingId,
     required int pageRead,
-  }) async {
-    final token = await StorageService.getToken();
+    }) async {
+      final token = await StorageService.getToken();
 
-    final response = await ApiClient.patch('${ApiConstants.reading}$readingId/', {
-        "pages_read": pageRead,
-      });
+      final response = await ApiClient.patch('${ApiConstants.reading}$readingId/', {
+          "pages_read": pageRead,
+        });
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to update reading progress');
-    }
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update reading progress');
+      }
 
-    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-    return ReadingEntry.fromJson(decoded);
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      return ReadingEntry.fromJson(decoded);
   }
 
   /// Add a book to the reading list (closed → open book)
