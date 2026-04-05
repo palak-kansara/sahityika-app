@@ -19,31 +19,30 @@ class BookDetailScreen extends StatefulWidget {
 }
 
 class _BookDetailScreenState extends State<BookDetailScreen> {
-    late Future<Book> _bookFuture;
-    bool _isFav = false;
-    bool _wishlistLoading = false;
-    bool _isRead = false;
-    bool _readingLoading = false;
-    bool _hasSyncedRead = false;
-    int? _readId;
-    bool _progressLoading = false;
-    int _pageRead = 0;
-    int? _totalPages;
-    double _progress = 0.0;
-    final TextEditingController _pageReadController = TextEditingController();
+  late Future<Book> _bookFuture;
+  bool _isFav = false;
+  bool _wishlistLoading = false;
+  bool _isRead = false;
+  bool _readingLoading = false;
+  int? _readId;
+  bool _progressLoading = false;
+  int _pageRead = 0;
+  int? _totalPages;
+  double _progress = 0.0;
+  final TextEditingController _pageReadController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _bookFuture = BookService.fetchBookDetail(widget.bookId).then((book) {
-    _isFav = book.isFav;
-    _isRead = book.isRead;
-    _readId = book.readId;
-    if (_readId != null) {
-      _loadReadingProgress(_readId!);
-    }
-    return book;
-  });
+      _isFav = book.isFav;
+      _isRead = book.isRead;
+      _readId = book.readId;
+      if (_readId != null) {
+        _loadReadingProgress(_readId!);
+      }
+      return book;
+    });
   }
 
   @override
@@ -111,7 +110,6 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   Future<void> _handleReadingToggle(Book book) async {
     if (_readingLoading) return;
 
-    // If already in reading list, confirm removal & progress reset
     if (_isRead) {
       final confirmed = await showDialog<bool>(
             context: context,
@@ -143,22 +141,17 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     try {
       Map<String, dynamic> response;
       if (_isRead) {
-        // DELETE: remove from reading list using read_id
-        if (_readId == null) {
-          throw Exception('Missing read_id for this book');
-        }
+        if (_readId == null) throw Exception('Missing read_id for this book');
         response = await ReadingService.removeFromReading(_readId!);
         setState(() {
           _readId = null;
           _isRead = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Book removed from reading list")),
+          const SnackBar(content: Text('Book removed from reading list')),
         );
       } else {
-        // POST: add to reading list using book id
         response = await ReadingService.addToReading(book.id);
-        // Response example: {"id":15,"book":{...}}
         final int? newReadId = (response['id'] as num?)?.toInt();
         setState(() {
           _readId = newReadId;
@@ -168,18 +161,15 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           await _loadReadingProgress(newReadId);
         }
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Book added to reading list")),
+          const SnackBar(content: Text('Book added to reading list')),
         );
       }
-
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Reading list update failed')),
       );
     } finally {
-      if (mounted) {
-        setState(() => _readingLoading = false);
-      }
+      if (mounted) setState(() => _readingLoading = false);
     }
   }
 
@@ -202,285 +192,477 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     }
   }
 
-    void _openPreview(String previewLink) async {
-      if (previewLink.isEmpty) return;
+  void _openPreview(String previewLink) async {
+    if (previewLink.isEmpty) return;
+    final uri = Uri.parse(previewLink);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
 
-      final uri = Uri.parse(previewLink);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication,
+  Future<void> _toggleWishlist(int bookId) async {
+    if (_wishlistLoading) return;
+    setState(() => _wishlistLoading = true);
+    try {
+      final response = await BookService.toggleWishlist(bookId);
+      setState(() {
+        _isFav = response['data']['is_fav'] ?? false;
+      });
+      final message = response['message'];
+      if (message != null && message.toString().isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
         );
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Wishlist update failed')),
+      );
+    } finally {
+      if (mounted) setState(() => _wishlistLoading = false);
     }
+  }
 
-    Future<void> _toggleWishlist(int bookId) async {
-        if (_wishlistLoading) return;
-
-        setState(() => _wishlistLoading = true);
-
-        try {
-            final response = await BookService.toggleWishlist(bookId);
-            // response is Map<String, dynamic>
-
-            setState(() {
-            _isFav = response['data']['is_fav'] ?? false;
-            });
-
-            final message = response['message'];
-            if (message != null && message.toString().isNotEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(message)),
-            );
-            }
-        } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Wishlist update failed')),
-            );
-        } finally {
-            if (mounted) {
-            setState(() => _wishlistLoading = false);
-            }
-        }
-    }
-
- @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    body: FutureBuilder<Book>(
-      future: _bookFuture,
-      builder: (context, snapshot) {
-        final book = snapshot.data;
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Book Details'),
-            actions: [
-              if (book != null)
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  tooltip: 'Edit book',
-                  onPressed: () => _openEditScreen(book),
-                ),
-            ],
-          ),
-          body: snapshot.connectionState == ConnectionState.waiting
-              ? const Center(child: CircularProgressIndicator())
-              : snapshot.hasError
-                  ? const Center(child: Text('Failed to load book details'))
-                  : book == null
-                      ? const Center(child: Text('Book not found'))
-                      : _buildContent(context, book),
-        );
-      },
-    ),
-  );
-}
-
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: FutureBuilder<Book>(
+        future: _bookFuture,
+        builder: (context, snapshot) {
+          final book = snapshot.data;
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Book Details'),
+              actions: [
+                if (book != null)
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined),
+                    tooltip: 'Edit book',
+                    onPressed: () => _openEditScreen(book),
+                  ),
+              ],
+            ),
+            body: snapshot.connectionState == ConnectionState.waiting
+                ? const Center(child: CircularProgressIndicator())
+                : snapshot.hasError
+                    ? const Center(child: Text('Failed to load book details'))
+                    : book == null
+                        ? const Center(child: Text('Book not found'))
+                        : _buildContent(context, book),
+          );
+        },
+      ),
+    );
+  }
 
   Widget _buildContent(BuildContext context, Book book) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Cover Image
-          Center(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: book.thumbnail.isNotEmpty
-                  ? Image.network(
-                      book.thumbnail,
-                      height: 220,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Image.asset(
+          // ── Hero Header ──────────────────────────────────
+          Container(
+            width: double.infinity,
+            color: colorScheme.surfaceContainerHighest,
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            child: Center(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: book.thumbnail.isNotEmpty
+                      ? Image.network(
+                          book.thumbnail,
+                          height: 220,
+                          width: 148,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Image.asset(
+                            'assets/icon/app_icon.jpeg',
+                            height: 220,
+                            width: 148,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : Image.asset(
                           'assets/icon/app_icon.jpeg',
                           height: 220,
+                          width: 148,
                           fit: BoxFit.cover,
-                        );
-                      },
-                    )
-                  : Image.asset(
-                      'assets/icon/app_icon.jpeg',
-                      height: 220,
-                      fit: BoxFit.cover,
-                    ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Title
-          Text(
-            book.title,
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-
-          if (book.subtitle != null && book.subtitle!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                book.subtitle!,
-                style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                ),
               ),
             ),
-
-          const SizedBox(height: 12),
-
-          // Authors
-          Text(
-            'Author(s): ${book.authors.map((a) => a.name).join(', ')}',
-            style: Theme.of(context).textTheme.bodyMedium,
           ),
 
-          const SizedBox(height: 12),
-
-          // ISBN
-          Text('ISBN-10: ${book.isbn10}'),
-          Text('ISBN-13: ${book.isbn13}'),
-
-          const SizedBox(height: 20),
-
-          // Description
-          Text(
-            'Description',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
-
-          Text(
-            book.description,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-
-          const SizedBox(height: 24),
-
-          if (_isRead) ...[
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Reading progress',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${(_progress * 100).round()}%',
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                    ],
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Title + Subtitle + Authors ───────────
+                Text(
+                  book.title,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 10),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: LinearProgressIndicator(
-                      value: _progress,
-                      minHeight: 10,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
+                ),
+                if (book.subtitle != null && book.subtitle!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
                   Text(
-                    _totalPages != null && _totalPages! > 0
-                        ? 'Page $_pageRead of $_totalPages'
-                        : 'Page read: $_pageRead',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _pageReadController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Pages read',
-                            isDense: true,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 110),
-                        child: ElevatedButton(
-                          onPressed: _progressLoading ? null : _savePageRead,
-                          child: _progressLoading
-                              ? const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Text('Save'),
-                        ),
-                      ),
-                    ],
+                    book.subtitle!,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-
-          // Actions
-          Row(
-            children: [
-              Expanded(
-                child: IconButton(
-                    onPressed: _wishlistLoading
-                        ? null
-                        : () => _toggleWishlist(book.id),
-                    icon: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                        _isFav ? Icons.favorite : Icons.favorite_border,
-                        key: ValueKey(_isFav),
-                        color: _isFav
-                            ? Theme.of(context).colorScheme.primary // Gold
-                            : Theme.of(context).iconTheme.color,
-                        size: 26,
-                        ),
-                    ),
-                    tooltip: _isFav ? 'Remove from Wishlist' : 'Add to Wishlist',
-)
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: IconButton(
-                  onPressed: _readingLoading
-                      ? null
-                      : () => _handleReadingToggle(book),
-                  icon: Icon(
-                    _isRead ? Icons.menu_book : Icons.book_outlined,
-                    color: _isRead
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).iconTheme.color,
-                    size: 26,
+                const SizedBox(height: 8),
+                Text(
+                  book.authors.map((a) => a.name).join(', '),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w500,
                   ),
-                  tooltip:
-                      _isRead ? 'Open (in reading list)' : 'Add to Reading List',
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.open_in_new),
-                  label: const Text('Preview'),
-                  onPressed: () => _openPreview(book.previewLink),
+
+                const SizedBox(height: 16),
+
+                // ── Metadata chips ───────────────────────
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    if (book.publishedDate != null &&
+                        book.publishedDate!.isNotEmpty)
+                      _InfoChip(
+                        icon: Icons.calendar_today_outlined,
+                        label: book.publishedDate!,
+                      ),
+                    if (book.pageCount != null && book.pageCount!.isNotEmpty)
+                      _InfoChip(
+                        icon: Icons.menu_book_outlined,
+                        label: '${book.pageCount} pages',
+                      ),
+                    if (book.language != null && book.language!.isNotEmpty)
+                      _InfoChip(
+                        icon: Icons.language_outlined,
+                        label: book.language!.toUpperCase(),
+                      ),
+                    if (book.publisher != null && book.publisher!.isNotEmpty)
+                      _InfoChip(
+                        icon: Icons.business_outlined,
+                        label: book.publisher!,
+                      ),
+                  ],
                 ),
-              ),
-            ],
+
+                if (book.categories != null && book.categories!.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: book.categories!
+                        .split('/')
+                        .map(
+                          (c) => Chip(
+                            label: Text(
+                              c.trim(),
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            padding: EdgeInsets.zero,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                            backgroundColor: colorScheme.secondaryContainer,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+
+                const SizedBox(height: 20),
+
+                // ── Action Buttons ───────────────────────
+                Row(
+                  children: [
+                    _wishlistLoading
+                        ? const SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                          )
+                        : _isFav
+                            ? IconButton.filled(
+                                icon: const Icon(Icons.favorite),
+                                tooltip: 'Remove from Wishlist',
+                                onPressed: () => _toggleWishlist(book.id),
+                              )
+                            : IconButton.outlined(
+                                icon: const Icon(Icons.favorite_border),
+                                tooltip: 'Add to Wishlist',
+                                onPressed: () => _toggleWishlist(book.id),
+                              ),
+                    const SizedBox(width: 8),
+                    _readingLoading
+                        ? const SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: Center(
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            ),
+                          )
+                        : _isRead
+                            ? IconButton.filled(
+                                icon: const Icon(Icons.menu_book),
+                                tooltip: 'Remove from Reading List',
+                                onPressed: () => _handleReadingToggle(book),
+                              )
+                            : IconButton.outlined(
+                                icon: const Icon(Icons.book_outlined),
+                                tooltip: 'Add to Reading List',
+                                onPressed: () => _handleReadingToggle(book),
+                              ),
+                    const Spacer(),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.open_in_new, size: 16),
+                      label: const Text('Preview'),
+                      onPressed: book.previewLink.isNotEmpty
+                          ? () => _openPreview(book.previewLink)
+                          : null,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // ── Reading Progress ─────────────────────
+                if (_isRead) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header row
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Reading Progress',
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '${(_progress * 100).round()}%',
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // Progress bar
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(999),
+                          child: LinearProgressIndicator(
+                            value: _progress,
+                            minHeight: 10,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Page counter
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _totalPages != null && _totalPages! > 0
+                                  ? 'Page $_pageRead of $_totalPages'
+                                  : 'Page $_pageRead read',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            if (_totalPages != null && _totalPages! > 0 && _pageRead < _totalPages!)
+                              Text(
+                                '${_totalPages! - _pageRead} pages left',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Divider(height: 1),
+                        const SizedBox(height: 14),
+                        // Update row
+                        Row(
+                          children: [
+                            // Decrement
+                            IconButton.outlined(
+                              icon: const Icon(Icons.remove, size: 18),
+                              visualDensity: VisualDensity.compact,
+                              onPressed: _progressLoading
+                                  ? null
+                                  : () {
+                                      final cur = int.tryParse(
+                                            _pageReadController.text,
+                                          ) ??
+                                          _pageRead;
+                                      if (cur > 0) {
+                                        _pageReadController.text =
+                                            (cur - 1).toString();
+                                      }
+                                    },
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: _pageReadController,
+                                keyboardType: TextInputType.number,
+                                textAlign: TextAlign.center,
+                                decoration: const InputDecoration(
+                                  labelText: 'Pages read',
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Increment
+                            IconButton.outlined(
+                              icon: const Icon(Icons.add, size: 18),
+                              visualDensity: VisualDensity.compact,
+                              onPressed: _progressLoading
+                                  ? null
+                                  : () {
+                                      final cur = int.tryParse(
+                                            _pageReadController.text,
+                                          ) ??
+                                          _pageRead;
+                                      _pageReadController.text =
+                                          (cur + 1).toString();
+                                    },
+                            ),
+                            const SizedBox(width: 10),
+                            FilledButton(
+                              onPressed:
+                                  _progressLoading ? null : _savePageRead,
+                              child: _progressLoading
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text('Save'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+
+                // ── ISBN (subtle) ────────────────────────
+                if (book.isbn10.isNotEmpty || book.isbn13.isNotEmpty) ...[
+                  Text(
+                    [
+                      if (book.isbn10.isNotEmpty) 'ISBN-10: ${book.isbn10}',
+                      if (book.isbn13.isNotEmpty) 'ISBN-13: ${book.isbn13}',
+                    ].join('   '),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+
+                // ── Description ──────────────────────────
+                if (book.description.isNotEmpty) ...[
+                  Text(
+                    'About',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    book.description,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ],
+
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 }
+
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _InfoChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: colorScheme.onSurfaceVariant),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: colorScheme.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
