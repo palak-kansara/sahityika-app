@@ -213,10 +213,10 @@ class _BookListViewState extends State<BookListView> {
                     itemCount: _books.length,
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 16,
-                        childAspectRatio: 0.65,
+                        crossAxisCount: 3,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 10,
+                        childAspectRatio: 0.58,
                     ),
                     itemBuilder: (context, index) {
                         final book = _books[index];
@@ -236,7 +236,7 @@ class _BookListViewState extends State<BookListView> {
                             children: [
                             Expanded(
                                 child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(8),
                                 child: book.thumbnail.isNotEmpty
                                     ? Image.network(
                                         book.thumbnail,
@@ -261,6 +261,7 @@ class _BookListViewState extends State<BookListView> {
                                 book.title,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontSize: 11),
                             ),
                             ],
                         ),
